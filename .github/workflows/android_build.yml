@@ -1,0 +1,45 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Extract Project ZIP & Setup Directory
+      run: |
+        unzip -o LinguaVN-Android-Studio.zip
+        
+        # البحث عن ملف gradlew ونقل المحتويات للمجلد الرئيسي إذا كان داخل مجلد فرعي
+        if [ ! -f "gradlew" ]; then
+          DIR_NAME=$(find . -maxdepth 2 -name "gradlew" -exec dirname {} \;)
+          if [ -n "$DIR_NAME" ]; then
+            echo "Moving files from $DIR_NAME to root directory..."
+            cp -rn $DIR_NAME/* . || true
+          fi
+        fi
+        
+        chmod +x gradlew || true
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: LinguaVN-App
+        path: "**/build/outputs/apk/debug/*.apk"
+        
